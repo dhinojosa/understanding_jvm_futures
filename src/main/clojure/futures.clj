@@ -4,12 +4,20 @@
          (+ 10 1000)
          ))
 
-(prn (realized? f))
+(println (realized? f))
 
 (Thread/sleep 4000)
 
-(prn (realized? f))
+(println (realized? f))
 
-(prn (deref f))
+(println (deref f))
+
+(promise)
+
+(deliver promise 10)
+
+@promise
+
+(deref promise)
 
 (shutdown-agents)

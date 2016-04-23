@@ -14,17 +14,21 @@ public class FutureBasicsTest {
 
     @Test
     public void testBasicFuture() throws ExecutionException, InterruptedException {
-        ExecutorService cachedThreadPool = Executors.newCachedThreadPool();
+        ExecutorService fixedThreadPool = Executors.newFixedThreadPool(5);
 
         Callable<Integer> callable = () -> {
+            System.out.println("Inside ze future" + Thread.currentThread().getName());
+            System.out.println(Thread.currentThread().getPriority());
             Thread.sleep(3000);
             return 5 + 3;
         };
 
-        Future<Integer> future = cachedThreadPool.submit(callable);
+        System.out.println("In test:" + Thread.currentThread().getName());
+        System.out.println("Main priority" + Thread.currentThread().getPriority());
+        Future<Integer> future = fixedThreadPool.submit(callable);
 
         //This will block
-        Integer result = future.get();
+        Integer result = future.get(); //block
         System.out.println("result = " + result);
     }
 
@@ -74,8 +78,10 @@ public class FutureBasicsTest {
         }
         Stream<String> allStrings = future.get();
         allStrings
-                .filter(x -> x.contains("Obama"))
+                .filter(x -> x.contains("Trump"))
                 .forEach(System.out::println);
+
+        Thread.sleep(5000);
     }
 
 
@@ -128,7 +134,7 @@ public class FutureBasicsTest {
 
     @Test
     public void testCompletionService() throws InterruptedException, ExecutionException {
-        ExecutorService executorService = Executors.newFixedThreadPool(3);
+        ExecutorService executorService = Executors.newFixedThreadPool(10);
         CompletionService<Integer> service = new ExecutorCompletionService<>(executorService);
         service.submit(() -> {
             Thread.sleep(4000);

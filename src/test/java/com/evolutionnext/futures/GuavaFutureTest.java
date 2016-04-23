@@ -18,8 +18,12 @@ public class GuavaFutureTest {
     @Test
     public void testGuavaFutures() throws InterruptedException {
         ExecutorService executorService = Executors.newCachedThreadPool();
-        ListeningExecutorService listeningExecutorService = MoreExecutors.listeningDecorator(executorService);
-        ListenableFuture<Integer> listenableFuture = listeningExecutorService.submit(() -> 33 + 40);
+        ListeningExecutorService listeningExecutorService =
+                MoreExecutors.listeningDecorator(executorService);
+
+        ListenableFuture<Integer> listenableFuture =
+                listeningExecutorService.submit(() -> 33 + 40);
+
         Futures.addCallback(listenableFuture,
                 new FutureCallback<Integer>() {
                     @Override
@@ -98,11 +102,11 @@ public class GuavaFutureTest {
         ListenableFuture<Stream<String>> mapped =
                 Futures.transformAsync(listenableFuture,
                         new AsyncFunction<String, Stream<String>>() {
-            @Override
-            public ListenableFuture<Stream<String>> apply(String url) throws Exception {
-                return downloadingContentFromURL(url);
-            }
-        });
+                            @Override
+                            public ListenableFuture<Stream<String>> apply(String url) throws Exception {
+                                return downloadingContentFromURL(url);
+                            }
+                        });
 
         Futures.addCallback(mapped,
                 new FutureCallback<Stream<String>>() {
@@ -119,6 +123,4 @@ public class GuavaFutureTest {
         );
         Thread.sleep(4000);
     }
-
-
 }

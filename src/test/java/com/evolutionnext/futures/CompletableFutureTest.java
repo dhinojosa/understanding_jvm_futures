@@ -8,6 +8,8 @@ import java.util.InputMismatchException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.function.Function;
+import java.util.function.Supplier;
 
 public class CompletableFutureTest {
 
@@ -29,7 +31,7 @@ public class CompletableFutureTest {
                     } catch (InterruptedException e) {
                         e.printStackTrace();
                     }
-                    return 43 + 12;
+                    return 5;
                 });
 
         integerFuture2 = CompletableFuture
@@ -41,7 +43,7 @@ public class CompletableFutureTest {
                     } catch (InterruptedException e) {
                         e.printStackTrace();
                     }
-                    return 500 + 55;
+                    return 555;
                 });
 
         stringFuture1 = CompletableFuture
@@ -53,20 +55,30 @@ public class CompletableFutureTest {
                     } catch (InterruptedException e) {
                         e.printStackTrace();
                     }
-                    return "Boston, MA";
+                    return "Reston, VA";
                 });
+    }
+
+
+    @Test
+    public void completableFutureWithThenAccept() throws InterruptedException {
+        integerFuture1.thenAccept(System.out::println);
+        Thread.sleep(3000);
     }
 
     @Test
     public void completableFutureWithThenApply() throws InterruptedException {
-        CompletableFuture<Integer> thenApply =
-                integerFuture1.thenApply(x -> {
-                    System.out.println("In Block:" +
-                            Thread.currentThread().getName());
-                    return x + 19;
+        CompletableFuture<String> future =
+                integerFuture1.thenApply(new Function<Integer, String>() {
+                    @Override
+                    public String apply(Integer x) {
+                        System.out.println("In Block:" +
+                                Thread.currentThread().getName());
+                        return "" + (x + 19);
+                    }
                 });
-        thenApply.thenAccept(System.out::println);
-        Thread.sleep(3000);
+        future.thenAccept(System.out::println);
+        Thread.sleep(5000);
     }
 
     @Test
@@ -77,31 +89,15 @@ public class CompletableFutureTest {
                             Thread.currentThread().getName());
                     return x + 19;
                 }, executorService);
-        thenApplyAsync.thenAccept(System.out::println);
-        Thread.sleep(3000);
-    }
 
-    @Test
-    public void applyToEither() throws InterruptedException {
-        integerFuture1
-                .applyToEither(integerFuture2, x -> x * 10)
-                .thenAccept(System.out::println);
-        Thread.sleep(6000);
-    }
-
-    @Test
-    public void completableFutureWithThenAccept() throws InterruptedException {
-        integerFuture1.thenAccept(System.out::println);
-        Thread.sleep(3000);
-    }
-
-    @Test
-    public void completableFutureWithThenAcceptAsync() throws InterruptedException {
-        integerFuture1.thenAcceptAsync(x -> {
-            System.out.println("Got value: " + x + " in "
-                    + Thread.currentThread().getName());
-        }, executorService);
         Thread.sleep(5000);
+
+        thenApplyAsync.thenAcceptAsync((x) -> {
+            System.out.println("Accepting in:" + Thread.currentThread().getName());
+            System.out.println("x = " + x);
+        });
+
+        Thread.sleep(3000);
     }
 
     @Test
@@ -117,12 +113,6 @@ public class CompletableFutureTest {
     }
 
     @Test
-    public void completableFutureAcceptEither() throws InterruptedException {
-        integerFuture1.acceptEither(integerFuture2, System.out::println);
-        Thread.sleep(4000);
-    }
-
-    @Test
     public void completableFutureExceptionally() throws InterruptedException {
         stringFuture1.thenApply(Integer::parseInt)
                 .exceptionally(t -> -1).thenAccept(System.out::println);
@@ -131,8 +121,8 @@ public class CompletableFutureTest {
 
     @Test
     public void completableFutureHandle() throws InterruptedException {
-        stringFuture1.thenApply(Integer::parseInt).handle((i, t) -> {
-            if (i != null) return i;
+        stringFuture1.thenApply(Integer::parseInt).handle((item, throwable) -> {
+            if (throwable == null) return item;
             else return -1;
         }).thenAccept(System.out::println);
 
@@ -149,11 +139,10 @@ public class CompletableFutureTest {
         });
     }
 
-    //Need slides for completableCompose vs. combine
     @Test
     public void completableCompose() throws InterruptedException {
         CompletableFuture<Integer> combine =
-                stringFuture1.thenCompose(this::getTemperatureInFahrenheit);
+                stringFuture1.thenCompose(s -> getTemperatureInFahrenheit(s));
         combine.thenAccept(System.out::println);
         Thread.sleep(6000);
     }
