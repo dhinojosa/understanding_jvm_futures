@@ -1,3 +1,6 @@
+
+;; Demo 12: Clojure Futures
+
 (def f (future
          (Thread/sleep 3000)
          (.getName (Thread/currentThread))
@@ -12,12 +15,15 @@
 
 (println (deref f))
 
-(promise)
 
-(deliver promise 10)
+;; Demo 13: Clojure Promise
 
-@promise
+(def p (promise))
 
-(deref promise)
+(deliver p 10)
 
-(shutdown-agents)
+@p
+
+;(deref p)
+
+;(shutdown-agents)
