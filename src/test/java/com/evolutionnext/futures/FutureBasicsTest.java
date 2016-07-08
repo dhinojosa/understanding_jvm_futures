@@ -12,15 +12,23 @@ import java.util.stream.Stream;
 
 public class FutureBasicsTest {
 
+    /**
+     * Demo 1: Basic Futures
+     */
     @Test
-    public void testBasicFuture() throws ExecutionException, InterruptedException {
+    public void testBasicFuture() throws ExecutionException,
+            InterruptedException {
         ExecutorService fixedThreadPool = Executors.newFixedThreadPool(5);
 
-        Callable<Integer> callable = () -> {
-            System.out.println("Inside ze future" + Thread.currentThread().getName());
-            System.out.println(Thread.currentThread().getPriority());
-            Thread.sleep(3000);
-            return 5 + 3;
+        Callable<Integer> callable = new Callable<Integer>() {
+            @Override
+            public Integer call() throws Exception {
+                System.out.println("Inside ze future: " +
+                        Thread.currentThread().getName());
+                System.out.println("Future priority: " + Thread.currentThread().getPriority());
+                Thread.sleep(10000);
+                return 5 + 3;
+            }
         };
 
         System.out.println("In test:" + Thread.currentThread().getName());
@@ -32,20 +40,29 @@ public class FutureBasicsTest {
         System.out.println("result = " + result);
     }
 
+
+    /**
+     * Demo 2 : Async the Old Way
+     */
     @Test
-    public void testBasicFutureAsync() throws ExecutionException, InterruptedException {
+    public void testBasicFutureAsync() throws ExecutionException,
+            InterruptedException {
         ExecutorService cachedThreadPool = Executors.newCachedThreadPool();
 
-        Callable<Integer> callable = () -> {
-            Thread.sleep(3000);
-            return 5 + 3;
+        Callable<Integer> callable = new Callable<Integer>() {
+            @Override
+            public Integer call() throws Exception {
+                Thread.sleep(3000);
+                return 5 + 3;
+            }
         };
 
         Future<Integer> future = cachedThreadPool.submit(callable);
 
         //This will not block
         while (!future.isDone()) {
-            System.out.println("I am doing something else");
+            System.out.println("I am doing something else on thread: " +
+                    Thread.currentThread().getName());
         }
 
         Integer result = future.get();
@@ -53,50 +70,83 @@ public class FutureBasicsTest {
     }
 
 
-    public Future<Stream<String>> downloadingContentFromURL(final String url) {
+    /**
+     * Demo 3: Futures with Parameters
+     */
+    private Future<Stream<String>> downloadingContentFromURL(final String url) {
         ExecutorService cachedThreadPool = Executors.newCachedThreadPool();
-        FutureTask<Stream<String>> futureTask = new FutureTask<>(() -> {
-            URL netUrl = new URL(url);
-            URLConnection urlConnection = netUrl.openConnection();
-            BufferedReader reader = new BufferedReader(
-                    new InputStreamReader(
-                            urlConnection.getInputStream()));
-            return reader
-                    .lines()
-                    .flatMap(x -> Arrays.stream(x.split(" ")));
+        return cachedThreadPool.submit(new Callable<Stream<String>>() {
+            @Override
+            public Stream<String> call() throws Exception {
+                URL netUrl = new URL(url);
+                URLConnection urlConnection = netUrl.openConnection();
+                BufferedReader reader = new BufferedReader(
+                        new InputStreamReader(
+                                urlConnection.getInputStream()));
+                return reader
+                        .lines()
+                        .flatMap(x -> Arrays.stream(x.split(" ")));
+            }
         });
-        cachedThreadPool.execute(futureTask);
-        return futureTask;
     }
 
     @Test
     public void testGettingUrl() throws ExecutionException, InterruptedException {
-        Future<Stream<String>> future = downloadingContentFromURL("http://www.cnn.com");
+        Future<Stream<String>> future = downloadingContentFromURL
+                ("http://www.nytimes.com");
         while (!future.isDone()) {
             Thread.sleep(1000);
             System.out.println("Doing Something Else");
         }
         Stream<String> allStrings = future.get();
         allStrings
-                .filter(x -> x.contains("Trump"))
+                .filter(x -> x.contains("Unemployment"))
                 .forEach(System.out::println);
-
         Thread.sleep(5000);
     }
 
+    /**
+     * Demo 4: FutureTasks
+     */
+    @Test
+    public void testFutureTasksUsingThreadPool() throws InterruptedException, ExecutionException {
+        ExecutorService cachedThreadPool = Executors.newCachedThreadPool();
+
+        FutureTask<Integer> futureTask = new FutureTask<Integer>(new Callable<Integer>() {
+            @Override
+            public Integer call() throws Exception {
+                Thread.sleep(5000);
+                return 510 + 40;
+            }
+        });
+
+
+        System.out.println("Running Future Task");
+        cachedThreadPool.execute(futureTask);
+        while (!futureTask.isDone()) {
+            Thread.sleep(1000);
+            System.out.println("Doing Something Else");
+        }
+        System.out.println(futureTask.get());
+        Thread.sleep(1000);
+    }
 
 
     @Test
     public void testFutureTaskAsRunnableInThread() throws ExecutionException, InterruptedException {
-        FutureTask<Integer> task = new FutureTask<>(() -> {
-            System.out.println(Thread.currentThread().getName());
-            return 33 + 100;}
-        );
 
-        Thread thread = new Thread(task);
+        FutureTask<Integer> futureTask = new FutureTask<Integer>(new Callable<Integer>() {
+            @Override
+            public Integer call() throws Exception {
+                Thread.sleep(5000);
+                return 510 + 40;
+            }
+        });
+
+        Thread thread = new Thread(futureTask);
         thread.start();
 
-        Integer result = task.get();
+        Integer result = futureTask.get();  //Block
         System.out.println("result = " + result);
         Thread.sleep(5000);
     }
@@ -104,15 +154,20 @@ public class FutureBasicsTest {
 
     @Test
     public void testFutureTaskAsRunnableDirect() throws ExecutionException, InterruptedException {
-        FutureTask<Integer> task = new FutureTask<>(() -> {
-            System.out.println(Thread.currentThread().getName());
-            return 33 + 100;}
-        );
+        FutureTask<Integer> futureTask = new FutureTask<Integer>(new Callable<Integer>() {
+            @Override
+            public Integer call() throws Exception {
+                Thread.sleep(5000);
+                return 510 + 40;
+            }
+        });
+
 
         ExecutorService executorService = Executors.newFixedThreadPool(4);
-        executorService.submit(task);
+        executorService.submit(futureTask);
+        System.out.println("Submitted Future Task");
 
-        Integer result = task.get(); //Block!
+        Integer result = futureTask.get(); //Block!
         System.out.println("result = " + result);
         Thread.sleep(5000);
     }
@@ -120,42 +175,19 @@ public class FutureBasicsTest {
 
     @Test
     public void testFutureTaskUsingExecute() throws ExecutionException, InterruptedException {
-        FutureTask<Integer> task = new FutureTask<>(() -> {
-            System.out.println("In Task:" + Thread.currentThread().getName());
-            return 40 + 100;
+        FutureTask<Integer> futureTask = new FutureTask<Integer>(new Callable<Integer>() {
+            @Override
+            public Integer call() throws Exception {
+                Thread.sleep(5000);
+                return 510 + 40;
+            }
         });
+
         ExecutorService service = Executors.newFixedThreadPool(3);
         System.out.println("Starting task!");
-        service.execute(task);
-        System.out.println("result = " + task.get());
-        System.out.println("isDone = " + task.isDone());
+        service.execute(futureTask);
+        System.out.println("result = " + futureTask.get()); //Block
+        System.out.println("isDone = " + futureTask.isDone());
         Thread.sleep(5000);
-    }
-
-    @Test
-    public void testCompletionService() throws InterruptedException, ExecutionException {
-        ExecutorService executorService = Executors.newFixedThreadPool(10);
-        CompletionService<Integer> service = new ExecutorCompletionService<>(executorService);
-        service.submit(() -> {
-            Thread.sleep(4000);
-            return 4000;
-        });
-        service.submit(() -> {
-            Thread.sleep(1000);
-            return 1000;
-        });
-        service.submit(() -> {
-            Thread.sleep(8000);
-            return 8000;
-        });
-        service.submit(() -> {
-            Thread.sleep(100);
-            return 100;
-        });
-
-        System.out.println("result = " + service.take().get());
-        System.out.println("result = " + service.take().get());
-        System.out.println("result = " + service.take().get());
-        System.out.println("result = " + service.take().get());
     }
 }

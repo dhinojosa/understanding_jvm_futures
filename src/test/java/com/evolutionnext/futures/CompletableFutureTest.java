@@ -8,6 +8,8 @@ import java.util.InputMismatchException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.function.BiFunction;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
@@ -18,6 +20,9 @@ public class CompletableFutureTest {
     private CompletableFuture<String> stringFuture1;
     private ExecutorService executorService;
 
+    /**
+     * Demo 9: Completable Futures
+     */
     @Before
     public void startUp() {
         executorService = Executors.newCachedThreadPool();
@@ -49,13 +54,13 @@ public class CompletableFutureTest {
         stringFuture1 = CompletableFuture
                 .supplyAsync(() -> {
                     try {
-                        System.out.println("stringFuture2 is sleeping in thread: "
+                        System.out.println("stringFuture1 is sleeping in thread: "
                                 + Thread.currentThread().getName());
                         Thread.sleep(4300);
                     } catch (InterruptedException e) {
                         e.printStackTrace();
                     }
-                    return "Reston, VA";
+                    return "Salt Lake City, UT";
                 });
     }
 
@@ -63,19 +68,16 @@ public class CompletableFutureTest {
     @Test
     public void completableFutureWithThenAccept() throws InterruptedException {
         integerFuture1.thenAccept(System.out::println);
-        Thread.sleep(3000);
+        Thread.sleep(5000);
     }
 
     @Test
     public void completableFutureWithThenApply() throws InterruptedException {
         CompletableFuture<String> future =
-                integerFuture1.thenApply(new Function<Integer, String>() {
-                    @Override
-                    public String apply(Integer x) {
-                        System.out.println("In Block:" +
-                                Thread.currentThread().getName());
-                        return "" + (x + 19);
-                    }
+                integerFuture1.thenApply(x -> {
+                    System.out.println("In Block:" +
+                            Thread.currentThread().getName());
+                    return "" + (x + 19);
                 });
         future.thenAccept(System.out::println);
         Thread.sleep(5000);
@@ -83,13 +85,12 @@ public class CompletableFutureTest {
 
     @Test
     public void completableFutureWithThenApplyAsync() throws InterruptedException {
-        CompletableFuture<Integer> thenApplyAsync =
+        CompletableFuture<String> thenApplyAsync =
                 integerFuture1.thenApplyAsync(x -> {
                     System.out.println("In Block:" +
                             Thread.currentThread().getName());
-                    return x + 19;
+                    return "" + (x + 19);
                 }, executorService);
-
         Thread.sleep(5000);
 
         thenApplyAsync.thenAcceptAsync((x) -> {
@@ -97,6 +98,7 @@ public class CompletableFutureTest {
             System.out.println("x = " + x);
         });
 
+        System.out.println("Main:" + Thread.currentThread().getName());
         Thread.sleep(3000);
     }
 
@@ -114,36 +116,44 @@ public class CompletableFutureTest {
 
     @Test
     public void completableFutureExceptionally() throws InterruptedException {
-        stringFuture1.thenApply(Integer::parseInt)
-                .exceptionally(t -> -1).thenAccept(System.out::println);
+        stringFuture1.thenApply((s) -> Integer.parseInt(s))
+                .exceptionally(t -> {
+                    //t.printStackTrace();
+                    return -1;}).thenAccept(System.out::println);
+        System.out.println("This message should appear first.");
         Thread.sleep(6000);
     }
 
     @Test
     public void completableFutureHandle() throws InterruptedException {
-        stringFuture1.thenApply(Integer::parseInt).handle((item, throwable) -> {
-            if (throwable == null) return item;
-            else return -1;
-        }).thenAccept(System.out::println);
+        stringFuture1.thenApply((s) -> Integer.parseInt(s)).handle(
+                new BiFunction<Integer, Throwable, Integer>() {
+                    @Override
+                    public Integer apply(Integer item, Throwable throwable) {
+                        if (throwable == null) return item;
+                        else return -1;
+                    }
+                }).thenAccept(System.out::println);
 
         Thread.sleep(6000);
     }
 
-    public CompletableFuture<Integer> getTemperatureInFahrenheit(final String cityState) {
+    public CompletableFuture<Integer>
+        getTemperatureInFahrenheit(final String cityState) {
         return CompletableFuture.supplyAsync(() -> {
             //We go into a webservice to find the weather...
             System.out.println("In getTemperatureInFahrenheit: " +
                     Thread.currentThread().getName());
             System.out.println("Finding the temperature for " + cityState);
-            return 44;
+            return 81;
         });
     }
 
     @Test
     public void completableCompose() throws InterruptedException {
-        CompletableFuture<Integer> combine =
+        CompletableFuture<Integer> composition =
                 stringFuture1.thenCompose(s -> getTemperatureInFahrenheit(s));
-        combine.thenAccept(System.out::println);
+        composition.thenAccept(System.out::println);
         Thread.sleep(6000);
     }
 
@@ -200,16 +210,20 @@ public class CompletableFutureTest {
         Thread.sleep(6000);
     }
 
+    /**
+     * Demo 14: Java "Promises"
+     */
     @Test
-    public void testCompletableFuturePromise() {
+    public void testCompletableFuturePromise() throws InterruptedException {
         CompletableFuture<Integer> completableFuture =
                 new CompletableFuture<>();
 
         completableFuture.thenAccept(System.out::println);
 
         System.out.println("Processing something else");
-
-        completableFuture.complete(50);
+        Thread.sleep(1000);
+        completableFuture.complete(42);
+        Thread.sleep(3000);
     }
 
     @Test

@@ -9,20 +9,30 @@ import java.io.InputStreamReader;
 import java.net.URL;
 import java.net.URLConnection;
 import java.util.Arrays;
+import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.stream.Stream;
 
 public class GuavaFutureTest {
 
+    /**
+     * Demo 8: Guava Listening Executors
+     */
     @Test
     public void testGuavaFutures() throws InterruptedException {
         ExecutorService executorService = Executors.newCachedThreadPool();
+
         ListeningExecutorService listeningExecutorService =
                 MoreExecutors.listeningDecorator(executorService);
 
         ListenableFuture<Integer> listenableFuture =
-                listeningExecutorService.submit(() -> 33 + 40);
+                listeningExecutorService.submit(new Callable<Integer>() {
+                    @Override
+                    public Integer call() throws Exception {
+                        return 33 + 40;
+                    }
+                });
 
         Futures.addCallback(listenableFuture,
                 new FutureCallback<Integer>() {
@@ -49,7 +59,12 @@ public class GuavaFutureTest {
                 .listeningDecorator(executorService);
 
         ListenableFuture<Integer> listenableFuture = listeningExecutorService
-                .submit(() -> 33 + 40);
+                .submit(new Callable<Integer>() {
+                    @Override
+                    public Integer call() throws Exception {
+                        return 33 + 40;
+                    }
+                });
 
         ListenableFuture<Integer> mapped = Futures.transform
                 (listenableFuture,
@@ -97,7 +112,7 @@ public class GuavaFutureTest {
         ListeningExecutorService listeningExecutorService =
                 MoreExecutors.listeningDecorator(executorService);
         ListenableFuture<String> listenableFuture =
-                listeningExecutorService.submit(() -> "http://www.cnn.com");
+                listeningExecutorService.submit(() -> "http://www.nytimes.com");
 
         ListenableFuture<Stream<String>> mapped =
                 Futures.transformAsync(listenableFuture,
@@ -112,7 +127,9 @@ public class GuavaFutureTest {
                 new FutureCallback<Stream<String>>() {
                     @Override
                     public void onSuccess(Stream<String> result) {
-                        result.forEach(System.out::println);
+                        result
+                                .filter(x -> x.contains("Unemployment"))
+                                .forEach(System.out::println);
                     }
 
                     @Override
