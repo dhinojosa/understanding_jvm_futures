@@ -1,17 +1,15 @@
 package com.evolutionnext.futures;
 
-import org.junit.Before;
-import org.junit.Test;
-
-import java.util.IllegalFormatException;
 import java.util.InputMismatchException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
-import java.util.function.Consumer;
-import java.util.function.Function;
-import java.util.function.Supplier;
+
+import org.awaitility.Awaitility;
+import org.junit.Before;
+import org.junit.Test;
 
 public class CompletableFutureTest {
 
@@ -68,7 +66,7 @@ public class CompletableFutureTest {
     @Test
     public void completableFutureWithThenAccept() throws InterruptedException {
         integerFuture1.thenAccept(System.out::println);
-        Thread.sleep(5000);
+        Awaitility.await().atMost(5, TimeUnit.SECONDS).until(integerFuture1::isDone);
     }
 
     @Test
